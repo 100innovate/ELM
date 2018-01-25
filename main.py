@@ -4,7 +4,7 @@ import numpy as np
 
 class ELM:
     path = 'D:\\data'
-    nHiddenNeurons = 1000
+    nHiddenNeurons = 6000
 
     def load_mnist(self, kind='train'):
         """Load MNIST data from `path`"""
@@ -45,10 +45,13 @@ class ELM:
         trainData = self.trainData
         nHiddenNeurons = self.nHiddenNeurons
 
-        print(label)
+        test,testlabel=self.load_mnist('t10k')
+        test = test / 255
+        trainData = trainData /255
 
         p0 = np.mat(trainData)  # mat()输入矩阵
-        p0 = p0 / 255
+
+        p = p0[:10000]
 
         Iw = np.mat(np.random.rand(nHiddenNeurons, len(trainData[0])) * 2 - 1)  # InW
         print("输入层的权重矩阵为：\n")
@@ -58,24 +61,42 @@ class ELM:
         print("b矩阵为：\n")
         print(Inb)
 
-        H0 = self.sig(p0, Iw, Inb)  # 隐含层矩阵
+        H = self.sig(p, Iw, Inb)  # 隐含层矩阵
         print("隐含层矩阵为:\n")
-        print(H0)
+        print(H)
 
-        beta = (H0.T * H0).I * H0.T * label  # β矩阵
+        M = (H.T * H).I
+        beta = M * H.T * label[:10000]# np.linalg.pinv(H) * label  (H.T * H).I * H.T * label   β矩阵
         print("β矩阵为：\n")
         print(beta)
 
-        #Oi = self.sig(p0, Iw, Inb)
-        #Oi = Oi * beta
-        Oi = self.sig(p0[0], Iw, Inb)
-        Oi = Oi * beta
+        for i in range(21,120):
+            H0 = self.sig(p0[i * 500: (i + 1) * 500], Iw, Inb)
+            M = M - M * H0.T * (np.eye(1, 1) + H0 * M * H0.T).I * H0 * M
+            beta = beta + M * H0.T * (label[i * 500: (i + 1 ) * 500] - H0 * beta)
+            print("第",i*500,"个数据")
 
-        #np.savetxt('D:\\data\\Oi.csv', Oi, delimiter=',')
+        testOi = self.sig(test,Iw,Inb)
+        testOi = testOi * beta
 
-        print("原数据测试结果：")
-        print(Oi)
+        sum = 0
+        for i in range(60):
+            Oi = self.sig(trainData[i * 1000: (i + 1 ) * 1000], Iw, Inb)
+            Oi = Oi * beta
+            for x in range(1000):
+                if np.argmax(Oi[x]) == np.argmax(label[i * 1000 + x]):
+                    sum = sum + 1
 
+        print('训练集精度:')
+        print(sum/len(trainData))
+
+        sum = 0
+        for i in range(len(testOi)):
+            if np.argmax(testOi[i]) == testlabel[i]:
+                sum = sum + 1
+
+        print('测试集精度:')
+        print(sum/len(testOi))
 
 if __name__ == '__main__':
     np.set_printoptions(suppress=True)
