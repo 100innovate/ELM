@@ -1,3 +1,7 @@
+"""
+作者：陈峻林
+学校：中国地质大学（武汉）
+"""
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
